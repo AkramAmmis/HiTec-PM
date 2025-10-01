@@ -1,0 +1,16 @@
+volumes:
+  lf8Starter_postgres_data:
+    driver: local
+
+services:
+  postgres-employee:
+    container_name: lf8Starter_postgres
+    image: postgres:16.4
+    volumes:
+      - lf8Starter_postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: lf8Starter
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5432:5432"
