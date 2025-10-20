@@ -1,6 +1,5 @@
 package de.szut.lf8_starter.hello;
 
-
 import de.szut.lf8_starter.exceptionHandling.ResourceNotFoundException;
 import de.szut.lf8_starter.hello.dto.HelloCreateDto;
 import de.szut.lf8_starter.hello.dto.HelloGetDto;
@@ -28,14 +27,12 @@ public class HelloController implements HelloControllerOpenAPI{
         this.helloMapper = mappingService;
     }
 
-
     @PostMapping
     public HelloGetDto create(@RequestBody @Valid HelloCreateDto helloCreateDto) {
         HelloEntity helloEntity = this.helloMapper.mapCreateDtoToEntity(helloCreateDto);
         helloEntity = this.service.create(helloEntity);
         return this.helloMapper.mapToGetDto(helloEntity);
     }
-
 
     @GetMapping
     public List<HelloGetDto> findAll() {
