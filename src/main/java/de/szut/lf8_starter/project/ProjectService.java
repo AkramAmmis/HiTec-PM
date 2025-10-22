@@ -16,6 +16,7 @@ public class ProjectService {
         // 3) Kunden-ID Dummy-Gültigkeit prüfen -> 422
         // 4) DTO -> Entity, repo.save(entity)
         // 5) Entity -> ResponseDto zurück
+        return null;
 
     }
 }
