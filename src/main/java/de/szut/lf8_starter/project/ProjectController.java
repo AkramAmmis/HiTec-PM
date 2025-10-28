@@ -29,6 +29,7 @@ public class ProjectController {
         return service.create(dto);
       // 201 + Location + Body
     }
+    
     @GetMapping("/{id}")
     public ProjectResponseDto getProjectById(@PathVariable long id){
         return service.getById(id);

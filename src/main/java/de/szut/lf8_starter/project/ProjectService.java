@@ -19,12 +19,9 @@ public class ProjectService {
 
     public ProjectResponseDto getById(Long id) {
         Optional<ProjectEntity> project = projectRepository.findById(id);
-
         if (project.isEmpty()) {
             throw new ResourceNotFoundException("Project with id " + id + " not found");
-
         }
-
         return mapEntityToResponseDto(project.orElse(null));
     }
 
