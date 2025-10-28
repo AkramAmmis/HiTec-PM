@@ -31,8 +31,7 @@ public class ProjectController {
     }
     @GetMapping("/{id}")
     public ProjectResponseDto getProjectById(@PathVariable long id){
-
-        return ;
+        return service.getById(id);
     }
 
 }
