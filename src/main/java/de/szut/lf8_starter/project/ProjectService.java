@@ -5,6 +5,8 @@ import de.szut.lf8_starter.project.DTO.ProjectResponseDto;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 public class ProjectService {
 
@@ -13,6 +15,17 @@ public class ProjectService {
     public ProjectService(ProjectRepository projectRepository) {
         this.projectRepository = projectRepository;
     }
+
+    public ProjectResponseDto getById(Long id) {
+        Optional<ProjectEntity> project = projectRepository.findById(id);
+
+        if (project.isEmpty()) {
+            return null;
+        }
+
+        return mapEntityToResponseDto(project.orElse(null));
+    }
+
     @Transactional
     public ProjectResponseDto create(ProjectCreateDto dto) {
         //  Datum prüfen (start < end wenn gesetzt) -> 422
@@ -49,5 +62,15 @@ public class ProjectService {
         return r;
     }
 
-    
+    private ProjectResponseDto mapEntityToResponseDto(ProjectEntity entity) {
+        ProjectResponseDto dto = new ProjectResponseDto();
+        dto.setId(entity.getId());
+        dto.setBezeichnung(entity.getBezeichnung());
+        dto.setKundenId(entity.getKundenId());
+        dto.setVerantwortlicherMitarbeiterId(entity.getVerantwortlicherMitarbeiterId());
+        dto.setStartdatum(entity.getStartdatum());
+        dto.setGeplantesEnddatum(entity.getGeplantesEnddatum());
+        dto.setBeschreibung(entity.getBeschreibung());
+        return dto;
+    }
 }
