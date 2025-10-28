@@ -1,4 +1,5 @@
 package de.szut.lf8_starter.project;
+import de.szut.lf8_starter.exceptionHandling.ResourceNotFoundException;
 import de.szut.lf8_starter.exceptionHandling.UnprocessableEntityException;
 import de.szut.lf8_starter.project.DTO.ProjectCreateDto;
 import de.szut.lf8_starter.project.DTO.ProjectResponseDto;
@@ -20,7 +21,8 @@ public class ProjectService {
         Optional<ProjectEntity> project = projectRepository.findById(id);
 
         if (project.isEmpty()) {
-            return null;
+            throw new ResourceNotFoundException("Project with id " + id + " not found");
+
         }
 
         return mapEntityToResponseDto(project.orElse(null));
