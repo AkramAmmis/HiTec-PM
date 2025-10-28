@@ -1,9 +1,12 @@
 package de.szut.lf8_starter.project;
+import de.szut.lf8_starter.exceptionHandling.ResourceNotFoundException;
 import de.szut.lf8_starter.exceptionHandling.UnprocessableEntityException;
 import de.szut.lf8_starter.project.DTO.ProjectCreateDto;
 import de.szut.lf8_starter.project.DTO.ProjectResponseDto;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
 
 @Service
 public class ProjectService {
@@ -13,6 +16,15 @@ public class ProjectService {
     public ProjectService(ProjectRepository projectRepository) {
         this.projectRepository = projectRepository;
     }
+
+    public ProjectResponseDto getById(Long id) {
+        Optional<ProjectEntity> project = projectRepository.findById(id);
+        if (project.isEmpty()) {
+            throw new ResourceNotFoundException("Projekt mit ID " + id + " konnte nicht gefunden werden.");
+        }
+        return mapEntityToResponseDto(project.orElse(null));
+    }
+
     @Transactional
     public ProjectResponseDto create(ProjectCreateDto dto) {
         //  Datum prüfen (start < end wenn gesetzt) -> 422
@@ -47,5 +59,17 @@ public class ProjectService {
         r.setGeplantesEnddatum(saved.getGeplantesEnddatum());
         r.setBeschreibung(saved.getBeschreibung());
         return r;
+    }
+
+    private ProjectResponseDto mapEntityToResponseDto(ProjectEntity entity) {
+        ProjectResponseDto dto = new ProjectResponseDto();
+        dto.setId(entity.getId());
+        dto.setBezeichnung(entity.getBezeichnung());
+        dto.setKundenId(entity.getKundenId());
+        dto.setVerantwortlicherMitarbeiterId(entity.getVerantwortlicherMitarbeiterId());
+        dto.setStartdatum(entity.getStartdatum());
+        dto.setGeplantesEnddatum(entity.getGeplantesEnddatum());
+        dto.setBeschreibung(entity.getBeschreibung());
+        return dto;
     }
 }
