@@ -72,4 +72,11 @@ public class ProjectService {
         dto.setBeschreibung(entity.getBeschreibung());
         return dto;
     }
+    public void deleteById(Long id) {
+        // 1) Existenz prüfen -> 404
+        if (!projectRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Projekt " + id + " nicht gefunden");
+        }
+        // 2) Löschen
+        projectRepository.deleteById(id);}
 }

@@ -18,7 +18,7 @@ public class ProjectController {
     }
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)  // 👈 Das ist der Trick!
+    @ResponseStatus(HttpStatus.CREATED)
     public ProjectResponseDto createProject(@Valid @RequestBody ProjectCreateDto dto) {
         return service.create(dto);
     }
@@ -26,5 +26,10 @@ public class ProjectController {
     @GetMapping("/{id}")
     public ProjectResponseDto getProjectById(@PathVariable long id){
         return service.getById(id);
+    }
+    @DeleteMapping("/{id}")
+    public  ResponseEntity<Void> deleteProject(@PathVariable long id) {
+        service.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 }
