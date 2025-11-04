@@ -61,6 +61,39 @@ public class ProjectService {
         return r;
     }
 
+    public void deleteById(Long id) {
+        // 1) Existenz prüfen -> 404
+        if (!projectRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Projekt " + id + " nicht gefunden");
+        }
+        // 2) Löschen
+        projectRepository.deleteById(id);
+    }
+
+    @Transactional
+    public ProjectResponseDto update(Long id, ProjectCreateDto dto) {
+        ProjectEntity entity = projectRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Projekt mit ID " + id + " konnte nicht gefunden werden."));
+
+        if (dto.getGeplantesEnddatum() != null && !dto.getStartdatum().isBefore(dto.getGeplantesEnddatum())) {
+            throw new UnprocessableEntityException("Das Startdatum muss vor dem geplanten Enddatum liegen.");
+        }
+        if (dto.getKundenId() == null || dto.getKundenId() <= 0) {
+            throw new UnprocessableEntityException("kundenId ist ungültig.");
+        }
+        updateEntityFromDto(entity, dto);
+        return mapEntityToResponseDto(projectRepository.save(entity));
+    }
+
+    private void updateEntityFromDto(ProjectEntity entity, ProjectCreateDto dto) {
+        entity.setBezeichnung(dto.getBezeichnung());
+        entity.setKundenId(dto.getKundenId());
+        entity.setVerantwortlicherMitarbeiterId(dto.getVerantwortlicherMitarbeiterId());
+        entity.setStartdatum(dto.getStartdatum());
+        entity.setGeplantesEnddatum(dto.getGeplantesEnddatum());
+        entity.setBeschreibung(dto.getBeschreibung());
+    }
+
     private ProjectResponseDto mapEntityToResponseDto(ProjectEntity entity) {
         ProjectResponseDto dto = new ProjectResponseDto();
         dto.setId(entity.getId());
@@ -72,11 +105,4 @@ public class ProjectService {
         dto.setBeschreibung(entity.getBeschreibung());
         return dto;
     }
-    public void deleteById(Long id) {
-        // 1) Existenz prüfen -> 404
-        if (!projectRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Projekt " + id + " nicht gefunden");
-        }
-        // 2) Löschen
-        projectRepository.deleteById(id);}
 }
