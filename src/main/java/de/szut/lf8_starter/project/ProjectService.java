@@ -3,6 +3,8 @@ import de.szut.lf8_starter.exceptionHandling.ResourceNotFoundException;
 import de.szut.lf8_starter.exceptionHandling.UnprocessableEntityException;
 import de.szut.lf8_starter.project.DTO.ProjectCreateDto;
 import de.szut.lf8_starter.project.DTO.ProjectResponseDto;
+import de.szut.lf8_starter.project.client.EmployeeClient;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -12,10 +14,15 @@ import java.util.Optional;
 public class ProjectService {
 
     private final ProjectRepository projectRepository;
+    private final EmployeeClient employeeClient;
+    private final HttpServletRequest request;
 
-    public ProjectService(ProjectRepository projectRepository) {
+    public ProjectService(ProjectRepository projectRepository, EmployeeClient employeeClient, HttpServletRequest request) {
         this.projectRepository = projectRepository;
+        this.employeeClient = employeeClient;
+        this.request = request;
     }
+
 
     public ProjectResponseDto getById(Long id) {
         Optional<ProjectEntity> project = projectRepository.findById(id);
@@ -72,17 +79,42 @@ public class ProjectService {
 
     @Transactional
     public ProjectResponseDto update(Long id, ProjectCreateDto dto) {
-        ProjectEntity entity = projectRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Projekt mit ID " + id + " konnte nicht gefunden werden."));
+        ProjectEntity entity = projectRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Projekt mit ID " + id + " konnte nicht gefunden werden."));
 
+        validateProjectData(dto, entity);
+        validateEmployeeExists(dto.getVerantwortlicherMitarbeiterId());
+
+        updateEntityFromDto(entity, dto);
+
+        return mapEntityToResponseDto(projectRepository.save(entity));
+    }
+
+    private void validateProjectData(ProjectCreateDto dto, ProjectEntity existingEntity){
         if (dto.getGeplantesEnddatum() != null && !dto.getStartdatum().isBefore(dto.getGeplantesEnddatum())) {
             throw new UnprocessableEntityException("Das Startdatum muss vor dem geplanten Enddatum liegen.");
         }
         if (dto.getKundenId() == null || dto.getKundenId() <= 0) {
             throw new UnprocessableEntityException("kundenId ist ungültig.");
         }
-        updateEntityFromDto(entity, dto);
-        return mapEntityToResponseDto(projectRepository.save(entity));
+        if (dto.getStartdatum().isBefore(existingEntity.getStartdatum())) {
+            throw new UnprocessableEntityException("Das Startdatum kann nicht in die Vergangenheit verschoben werden.");
+        }
+        validateChanges(dto, existingEntity);
+    }
+
+    private void validateChanges(ProjectCreateDto dto, ProjectEntity existingEntity) {
+        if (dto.getStartdatum().isBefore(existingEntity.getStartdatum())) {
+            throw new UnprocessableEntityException("Das Startdatum kann nicht in die Vergangenheit verschoben werden.");
+        }
+    }
+
+    private void validateEmployeeExists(Long mitarbeiterId) {
+        try {
+            String authHeader = request.getHeader("Authorization");
+            employeeClient.assertEmployeeExists(mitarbeiterId, authHeader);
+        } catch (RuntimeException e) {
+            throw new ResourceNotFoundException("Mitarbeiter mit ID " + mitarbeiterId + " existiert nicht: " + e.getMessage());
+        }
     }
 
     private void updateEntityFromDto(ProjectEntity entity, ProjectCreateDto dto) {
