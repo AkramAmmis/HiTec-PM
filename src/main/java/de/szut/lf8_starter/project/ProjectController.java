@@ -1,5 +1,6 @@
 package de.szut.lf8_starter.project;
 
+import de.szut.lf8_starter.project.DTO.EmployeeAssignmentRequest;
 import de.szut.lf8_starter.project.DTO.ProjectCreateDto;
 import de.szut.lf8_starter.project.DTO.ProjectResponseDto;
 import jakarta.validation.Valid;
@@ -32,4 +33,13 @@ public class ProjectController {
         service.deleteById(id);
         return ResponseEntity.noContent().build();
     }
+    @PostMapping("/{projectId}/employees")
+    public ResponseEntity<Void> assignEmployee(
+            @PathVariable Long projectId,
+            @Valid @RequestBody EmployeeAssignmentRequest request
+    ) {
+        service.assignEmployee(projectId, request);
+        return ResponseEntity.noContent().build(); // 204
+    }
+
 }
