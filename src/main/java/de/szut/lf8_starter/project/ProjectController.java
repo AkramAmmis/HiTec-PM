@@ -34,12 +34,12 @@ public class ProjectController {
         return ResponseEntity.noContent().build();
     }
     @PostMapping("/{projectId}/employees")
-    public ResponseEntity<Void> assignEmployee(
-            @PathVariable Long projectId,
-            @Valid @RequestBody EmployeeAssignmentRequest request
-    ) {
-        service.assignEmployee(projectId, request);
-        return ResponseEntity.noContent().build(); // 204
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void assignEmployee(@PathVariable Long projectId,
+                               @Valid @RequestBody EmployeeAssignmentRequest request) {
+        service.assignEmployeeToProject(projectId, request.getMaId(), request.getRoleId());
     }
+
+
 
 }

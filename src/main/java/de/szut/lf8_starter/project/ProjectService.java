@@ -4,9 +4,10 @@ import de.szut.lf8_starter.exceptionHandling.ResourceNotFoundException;
 import de.szut.lf8_starter.exceptionHandling.UnprocessableEntityException;
 import de.szut.lf8_starter.project.DTO.ProjectCreateDto;
 import de.szut.lf8_starter.project.DTO.ProjectResponseDto;
+import de.szut.lf8_starter.project.assignment.ProjectAssignment;
 import de.szut.lf8_starter.project.client.EmployeeClient;
-import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
+import jakarta.transaction.Transactional;
 
 import java.util.Optional;
 
@@ -14,10 +15,9 @@ import java.util.Optional;
 public class ProjectService {
 
     private final ProjectRepository projectRepository;
-    private final ProjectAssignmentRepository projectAssignmentRepository; // wird später für die Zuweisung gebraucht
+    private final ProjectAssignmentRepository projectAssignmentRepository;
     private final EmployeeClient employeeClient;
 
-    // Konstruktor-Injection (Spring erstellt die Instanz und befüllt die Felder)
     public ProjectService(ProjectRepository projectRepository,
                           ProjectAssignmentRepository projectAssignmentRepository,
                           EmployeeClient employeeClient) {
@@ -36,17 +36,13 @@ public class ProjectService {
 
     @Transactional
     public ProjectResponseDto create(ProjectCreateDto dto) {
-        // 422: Start < Ende (falls Ende gesetzt)
         if (dto.getGeplantesEnddatum() != null && !dto.getStartdatum().isBefore(dto.getGeplantesEnddatum())) {
             throw new UnprocessableEntityException("Das Startdatum muss vor dem geplanten Enddatum liegen.");
         }
-
-        // 422: Kunden-ID plausibel?
         if (dto.getKundenId() == null || dto.getKundenId() <= 0) {
             throw new UnprocessableEntityException("kundenId ist ungültig.");
         }
 
-        // DTO -> Entity
         ProjectEntity entity = new ProjectEntity();
         entity.setBezeichnung(dto.getBezeichnung());
         entity.setKundenId(dto.getKundenId());
@@ -55,10 +51,7 @@ public class ProjectService {
         entity.setGeplantesEnddatum(dto.getGeplantesEnddatum());
         entity.setBeschreibung(dto.getBeschreibung());
 
-        // speichern
         ProjectEntity saved = projectRepository.save(entity);
-
-        // Entity -> ResponseDto
         return mapEntityToResponseDto(saved);
     }
 
@@ -67,6 +60,33 @@ public class ProjectService {
             throw new ResourceNotFoundException("Projekt " + id + " nicht gefunden");
         }
         projectRepository.deleteById(id);
+    }
+
+    // ==== NEU: Zuweisung ====
+    @Transactional
+    public void assignEmployeeToProject(Long projectId, Long employeeId, Long roleId) {
+        var project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Projekt mit ID " + projectId + " nicht gefunden."));
+
+        if (!employeeClient.exists(employeeId)) {
+            throw new ResourceNotFoundException("Mitarbeiter mit ID " + employeeId + " nicht gefunden.");
+        }
+
+        var qualifications = employeeClient.getQualifications(employeeId);
+        boolean hasQualification = qualifications.stream().anyMatch(q -> q.getId() .equals(roleId));
+        if (!hasQualification) {
+            throw new UnprocessableEntityException("Mitarbeiter hat die benötigte Qualifikation nicht.");
+        }
+
+        if (projectAssignmentRepository.existsByProjectIdAndEmployeeId(projectId, employeeId)) {
+            throw new UnprocessableEntityException("Mitarbeiter ist bereits diesem Projekt zugeordnet.");
+        }
+
+        ProjectAssignment pa = new ProjectAssignment();
+        pa.setProject(project);
+        pa.setEmployeeId(employeeId);
+        pa.setRoleId(roleId);
+        projectAssignmentRepository.save(pa);
     }
 
     private ProjectResponseDto mapEntityToResponseDto(ProjectEntity entity) {
@@ -80,37 +100,4 @@ public class ProjectService {
         dto.setBeschreibung(entity.getBeschreibung());
         return dto;
     }
-
-    @Transactional
-    public void assignEmployeeToProject(Long projectId, Long employeeId, Long roleId) {
-        // 1️ Projekt ?
-        var project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResourceNotFoundException("Projekt mit ID " + projectId + " nicht gefunden."));
-
-        // Mitarbeiter ?
-        if (!employeeClient.exists(employeeId)) {
-            throw new ResourceNotFoundException("Mitarbeiter mit ID " + employeeId + " nicht gefunden.");
-        }
-
-        //  Hat der Mitarbeiter die Qualifikation (roleId)?
-        var qualifications = employeeClient.getQualifications(employeeId);
-        boolean hasQualification = qualifications.stream().anyMatch(q -> q.getId().equals(roleId));
-        if (!hasQualification) {
-            throw new UnprocessableEntityException("Mitarbeiter hat die benötigte Qualifikation nicht.");
-        }
-
-        // Schon in diesem Projekt?
-        if (projectAssignmentRepository.existsByProjectIdAndEmployeeId(projectId, employeeId)) {
-            throw new UnprocessableEntityException("Mitarbeiter ist bereits diesem Projekt zugeordnet.");
-        }
-
-        // 5️⃣ Neues Assignment erstellen
-        var assignment = new de.szut.lf8_starter.project.assignment.ProjectAssignment();
-        assignment.setProject(project);
-        assignment.setEmployeeId(employeeId);
-        assignment.setRoleId(roleId);
-
-        projectAssignmentRepository.save(assignment);
-    }
-
 }
