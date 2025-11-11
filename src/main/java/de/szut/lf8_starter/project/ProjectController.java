@@ -27,9 +27,15 @@ public class ProjectController {
     public ProjectResponseDto getProjectById(@PathVariable long id){
         return service.getById(id);
     }
+
     @DeleteMapping("/{id}")
     public  ResponseEntity<Void> deleteProject(@PathVariable long id) {
         service.deleteById(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}")
+    public ProjectResponseDto updateProject(@Valid @RequestBody ProjectCreateDto dto , @PathVariable long id){
+        return service.update(id, dto);
     }
 }
