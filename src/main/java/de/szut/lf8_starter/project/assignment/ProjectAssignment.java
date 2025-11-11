@@ -6,27 +6,21 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@Table(
-        name = "project_employee_assignments",
-        uniqueConstraints = @UniqueConstraint(
-                name = "uq_project_employee",
-                columnNames = {"project_id", "employee_id"}  // verhindert doppelte Zuordnung
-        )
-)
 
 @Entity
+@Table(name = "project_assignment",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"project_id", "employee_id"}))
 public class ProjectAssignment {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Beziehung zu einem Projekt
-    @ManyToOne                // <--- das sagt: "Viele Zuordnungen gehören zu einem Projekt"
-    @JoinColumn(name = "project_id") // <--- Name der Spalte in der Tabelle
+    @ManyToOne(optional = false) @JoinColumn(name = "project_id")
     private ProjectEntity project;
 
-    private Long employeeId;  // keine echte Beziehung, nur ID (kommt aus anderem Service)
-    private Long roleId;
-}
+    @Column(name = "employee_id", nullable = false)
+    private Long employeeId;
 
+    @Column(name = "role_id", nullable = false)
+    private Long roleId;
+
+}

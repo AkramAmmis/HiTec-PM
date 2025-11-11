@@ -1,8 +1,10 @@
 package de.szut.lf8_starter.project;
+
 import de.szut.lf8_starter.exceptionHandling.ResourceNotFoundException;
 import de.szut.lf8_starter.exceptionHandling.UnprocessableEntityException;
 import de.szut.lf8_starter.project.DTO.ProjectCreateDto;
 import de.szut.lf8_starter.project.DTO.ProjectResponseDto;
+import de.szut.lf8_starter.project.client.EmployeeClient;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -12,9 +14,16 @@ import java.util.Optional;
 public class ProjectService {
 
     private final ProjectRepository projectRepository;
+    private final ProjectAssignmentRepository projectAssignmentRepository; // wird später für die Zuweisung gebraucht
+    private final EmployeeClient employeeClient;
 
-    public ProjectService(ProjectRepository projectRepository) {
+    // Konstruktor-Injection (Spring erstellt die Instanz und befüllt die Felder)
+    public ProjectService(ProjectRepository projectRepository,
+                          ProjectAssignmentRepository projectAssignmentRepository,
+                          EmployeeClient employeeClient) {
         this.projectRepository = projectRepository;
+        this.projectAssignmentRepository = projectAssignmentRepository;
+        this.employeeClient = employeeClient;
     }
 
     public ProjectResponseDto getById(Long id) {
@@ -22,17 +31,17 @@ public class ProjectService {
         if (project.isEmpty()) {
             throw new ResourceNotFoundException("Projekt mit ID " + id + " konnte nicht gefunden werden.");
         }
-        return mapEntityToResponseDto(project.orElse(null));
+        return mapEntityToResponseDto(project.get());
     }
 
     @Transactional
     public ProjectResponseDto create(ProjectCreateDto dto) {
-        //  Datum prüfen (start < end wenn gesetzt) -> 422
+        // 422: Start < Ende (falls Ende gesetzt)
         if (dto.getGeplantesEnddatum() != null && !dto.getStartdatum().isBefore(dto.getGeplantesEnddatum())) {
             throw new UnprocessableEntityException("Das Startdatum muss vor dem geplanten Enddatum liegen.");
         }
 
-        // Kunden-ID Dummy prüfen -> 422 bei Ungültigkeit
+        // 422: Kunden-ID plausibel?
         if (dto.getKundenId() == null || dto.getKundenId() <= 0) {
             throw new UnprocessableEntityException("kundenId ist ungültig.");
         }
@@ -50,15 +59,14 @@ public class ProjectService {
         ProjectEntity saved = projectRepository.save(entity);
 
         // Entity -> ResponseDto
-        ProjectResponseDto r = new ProjectResponseDto();
-        r.setId(saved.getId());
-        r.setBezeichnung(saved.getBezeichnung());
-        r.setKundenId(saved.getKundenId());
-        r.setVerantwortlicherMitarbeiterId(saved.getVerantwortlicherMitarbeiterId());
-        r.setStartdatum(saved.getStartdatum());
-        r.setGeplantesEnddatum(saved.getGeplantesEnddatum());
-        r.setBeschreibung(saved.getBeschreibung());
-        return r;
+        return mapEntityToResponseDto(saved);
+    }
+
+    public void deleteById(Long id) {
+        if (!projectRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Projekt " + id + " nicht gefunden");
+        }
+        projectRepository.deleteById(id);
     }
 
     private ProjectResponseDto mapEntityToResponseDto(ProjectEntity entity) {
@@ -72,11 +80,37 @@ public class ProjectService {
         dto.setBeschreibung(entity.getBeschreibung());
         return dto;
     }
-    public void deleteById(Long id) {
-        // 1) Existenz prüfen -> 404
-        if (!projectRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Projekt " + id + " nicht gefunden");
+
+    @Transactional
+    public void assignEmployeeToProject(Long projectId, Long employeeId, Long roleId) {
+        // 1️ Projekt ?
+        var project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Projekt mit ID " + projectId + " nicht gefunden."));
+
+        // Mitarbeiter ?
+        if (!employeeClient.exists(employeeId)) {
+            throw new ResourceNotFoundException("Mitarbeiter mit ID " + employeeId + " nicht gefunden.");
         }
-        // 2) Löschen
-        projectRepository.deleteById(id);}
+
+        //  Hat der Mitarbeiter die Qualifikation (roleId)?
+        var qualifications = employeeClient.getQualifications(employeeId);
+        boolean hasQualification = qualifications.stream().anyMatch(q -> q.getId().equals(roleId));
+        if (!hasQualification) {
+            throw new UnprocessableEntityException("Mitarbeiter hat die benötigte Qualifikation nicht.");
+        }
+
+        // Schon in diesem Projekt?
+        if (projectAssignmentRepository.existsByProjectIdAndEmployeeId(projectId, employeeId)) {
+            throw new UnprocessableEntityException("Mitarbeiter ist bereits diesem Projekt zugeordnet.");
+        }
+
+        // 5️⃣ Neues Assignment erstellen
+        var assignment = new de.szut.lf8_starter.project.assignment.ProjectAssignment();
+        assignment.setProject(project);
+        assignment.setEmployeeId(employeeId);
+        assignment.setRoleId(roleId);
+
+        projectAssignmentRepository.save(assignment);
+    }
+
 }
