@@ -11,18 +11,31 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ProjectService {
 
     private final ProjectRepository projectRepository;
+
     private final EmployeeClient employeeClient;
     private final HttpServletRequest request;
+    public ProjectService(ProjectRepository projectRepository) {
+        this.projectRepository = projectRepository;
+    }
 
     public ProjectService(ProjectRepository projectRepository, EmployeeClient employeeClient, HttpServletRequest request) {
         this.projectRepository = projectRepository;
         this.employeeClient = employeeClient;
         this.request = request;
+    }
+
+    public List<ProjectResponseDto> findAllProjects() {
+        return projectRepository.findAll()
+                .stream()
+                .map(this::mapEntityToResponseDto)
+                .collect(Collectors.toList());
     }
 
 

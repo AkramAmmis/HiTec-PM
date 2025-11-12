@@ -3,6 +3,10 @@ package de.szut.lf8_starter.project;
 import de.szut.lf8_starter.project.DTO.ProjectCreateDto;
 import de.szut.lf8_starter.project.DTO.ProjectResponseDto;
 import jakarta.validation.Valid;
+
+
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +27,11 @@ public class ProjectController {
         return service.create(dto);
     }
 
+    @GetMapping
+    public List<ProjectResponseDto> getAllProjects() {
+        return service.findAllProjects();
+    }
+
     @GetMapping("/{id}")
     public ProjectResponseDto getProjectById(@PathVariable long id){
         return service.getById(id);
@@ -39,3 +48,4 @@ public class ProjectController {
         return service.update(id, dto);
     }
 }
+
