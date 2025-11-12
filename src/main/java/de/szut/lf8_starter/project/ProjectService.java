@@ -21,9 +21,6 @@ public class ProjectService {
 
     private final EmployeeClient employeeClient;
     private final HttpServletRequest request;
-    public ProjectService(ProjectRepository projectRepository) {
-        this.projectRepository = projectRepository;
-    }
 
     public ProjectService(ProjectRepository projectRepository, EmployeeClient employeeClient, HttpServletRequest request) {
         this.projectRepository = projectRepository;
