@@ -2,14 +2,17 @@ package de.szut.lf8_starter.project;
 
 import de.szut.lf8_starter.exceptionHandling.ResourceNotFoundException;
 import de.szut.lf8_starter.exceptionHandling.UnprocessableEntityException;
-import de.szut.lf8_starter.project.DTO.ProjectCreateDto;
-import de.szut.lf8_starter.project.DTO.ProjectResponseDto;
+import de.szut.lf8_starter.project.DTO.*;
 import de.szut.lf8_starter.project.assignment.ProjectAssignment;
 import de.szut.lf8_starter.project.client.EmployeeClient;
 import org.springframework.stereotype.Service;
 import jakarta.transaction.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class ProjectService {
@@ -117,5 +120,30 @@ public class ProjectService {
         dto.setGeplantesEnddatum(entity.getGeplantesEnddatum());
         dto.setBeschreibung(entity.getBeschreibung());
         return dto;
+    }
+
+    public EmployeeProjectsResponseDto getProjectsByEmployee(Long employeeId) {
+        if (!employeeClient.exists(employeeId)) {
+            throw new ResourceNotFoundException("Mitarbeiter mit ID " + employeeId + " nicht gefunden.");
+        }
+        List<ProjectAssignment> assignments =
+                projectAssignmentRepository.findAllByEmployeeIdWithProject(employeeId);
+        Map<Long, String> roleNameById = employeeClient.getQualifications(employeeId).stream()
+                .collect(Collectors.toMap(QualificationDto::getId, QualificationDto::getDesignation));
+
+        List<EmployeeProjectItemDto> items = new ArrayList<>();
+        for (var pa : assignments) {
+            var p = pa.getProject();
+            EmployeeProjectItemDto item = new EmployeeProjectItemDto();
+            item.setProjectId(p.getId());
+            item.setBezeichnung(p.getBezeichnung());
+            item.setStartdatum(p.getStartdatum());
+            item.setEnddatum(p.getGeplantesEnddatum());
+            item.setRoleId(pa.getRoleId());
+            item.setRoleName(roleNameById.get(pa.getRoleId()));
+            items.add(item);
+        }
+
+        return new EmployeeProjectsResponseDto(employeeId, items);
     }
 }
