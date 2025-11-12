@@ -1,6 +1,7 @@
 package de.szut.lf8_starter.project;
 
 import de.szut.lf8_starter.project.DTO.ProjectCreateDto;
+import de.szut.lf8_starter.project.DTO.ProjectEmployeesResponseDto;
 import de.szut.lf8_starter.project.DTO.ProjectResponseDto;
 import jakarta.validation.Valid;
 
@@ -46,6 +47,11 @@ public class ProjectController {
     @PutMapping("/{id}")
     public ProjectResponseDto updateProject(@Valid @RequestBody ProjectCreateDto dto , @PathVariable long id){
         return service.update(id, dto);
+    }
+
+    @GetMapping("/{id}/employees")
+    public ProjectEmployeesResponseDto getEmployeeFromProject(@PathVariable long id){
+        return service.getEmployeesFromProject(id);
     }
 }
 

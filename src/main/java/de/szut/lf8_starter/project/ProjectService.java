@@ -2,7 +2,9 @@ package de.szut.lf8_starter.project;
 import de.szut.lf8_starter.exceptionHandling.ConflictException;
 import de.szut.lf8_starter.exceptionHandling.ResourceNotFoundException;
 import de.szut.lf8_starter.exceptionHandling.UnprocessableEntityException;
+import de.szut.lf8_starter.project.DTO.EmployeeDto;
 import de.szut.lf8_starter.project.DTO.ProjectCreateDto;
+import de.szut.lf8_starter.project.DTO.ProjectEmployeesResponseDto;
 import de.szut.lf8_starter.project.DTO.ProjectResponseDto;
 import de.szut.lf8_starter.project.client.EmployeeClient;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,6 +12,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -110,6 +113,18 @@ public class ProjectService {
 
 
         return mapEntityToResponseDto(projectRepository.save(entity));
+    }
+
+    public ProjectEmployeesResponseDto getEmployeesFromProject(Long projectId) {
+        ProjectEntity project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Projekt mit ID " + projectId + " konnte nicht gefunden werden."));
+
+        String authHeader = request.getHeader("Authorization");
+        EmployeeDto employee = employeeClient.getEmployeeById(project.getVerantwortlicherMitarbeiterId(), authHeader);
+
+        List<EmployeeDto> employees = Arrays.asList(employee);
+
+        return new ProjectEmployeesResponseDto(project.getId(), project.getBezeichnung(), employees);
     }
 
     private void validateProjectData(ProjectCreateDto dto, ProjectEntity existingEntity) {
