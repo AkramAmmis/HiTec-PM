@@ -40,6 +40,9 @@ public class ProjectController {
         service.assignEmployeeToProject(projectId, request.getMaId(), request.getRoleId());
     }
 
-
-
+    @DeleteMapping("/{projectId}/employees/{employeeId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void unassignEmployee(@PathVariable Long projectId, @PathVariable Long employeeId) {
+        service.unassignEmployeeFromProject(projectId, employeeId);
+    }
 }

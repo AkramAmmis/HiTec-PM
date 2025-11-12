@@ -89,6 +89,24 @@ public class ProjectService {
         projectAssignmentRepository.save(pa);
     }
 
+    @Transactional
+    public void unassignEmployeeFromProject(Long projectId, Long employeeId) {
+        if (!projectRepository.existsById(projectId)) {
+            throw new ResourceNotFoundException("Projekt mit ID " + projectId + " nicht gefunden.");
+        }
+
+        if (!employeeClient.exists(employeeId)) {
+            throw new ResourceNotFoundException("Mitarbeiter mit ID " + employeeId + " nicht gefunden.");
+        }
+
+        var assignmentOpt = projectAssignmentRepository.findByProjectIdAndEmployeeId(projectId, employeeId);
+        if (assignmentOpt.isEmpty()) {
+            throw new ResourceNotFoundException("Mitarbeiter " + employeeId + " ist dem Projekt " + projectId + " nicht zugewiesen.");
+        }
+
+        projectAssignmentRepository.delete(assignmentOpt.get());
+    }
+
     private ProjectResponseDto mapEntityToResponseDto(ProjectEntity entity) {
         ProjectResponseDto dto = new ProjectResponseDto();
         dto.setId(entity.getId());
