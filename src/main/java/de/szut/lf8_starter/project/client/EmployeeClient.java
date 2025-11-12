@@ -96,6 +96,10 @@ public class EmployeeClient {
         return h;
     }
 
+    public void assertExists(long l) {
+
+    }
+
     /** Response-Wrapper für /employees/{id}/qualifications */
 
 
