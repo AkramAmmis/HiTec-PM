@@ -2,20 +2,27 @@ package de.szut.lf8_starter.project;
 
 import de.szut.lf8_starter.exceptionHandling.ResourceNotFoundException;
 import de.szut.lf8_starter.exceptionHandling.UnprocessableEntityException;
+import de.szut.lf8_starter.project.DTO.EmployeeDto;
 import de.szut.lf8_starter.project.DTO.ProjectCreateDto;
+import de.szut.lf8_starter.project.DTO.ProjectEmployeesResponseDto;
 import de.szut.lf8_starter.project.DTO.ProjectResponseDto;
 import de.szut.lf8_starter.project.assignment.ProjectAssignment;
 import de.szut.lf8_starter.project.client.EmployeeClient;
 import org.springframework.stereotype.Service;
 import jakarta.transaction.Transactional;
 
+import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.Optional;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final ProjectAssignmentRepository projectAssignmentRepository;
+
     private final EmployeeClient employeeClient;
 
     public ProjectService(ProjectRepository projectRepository,
@@ -25,6 +32,14 @@ public class ProjectService {
         this.projectAssignmentRepository = projectAssignmentRepository;
         this.employeeClient = employeeClient;
     }
+
+    public List<ProjectResponseDto> findAllProjects() {
+        return projectRepository.findAll()
+                .stream()
+                .map(this::mapEntityToResponseDto)
+                .collect(Collectors.toList());
+    }
+
 
     public ProjectResponseDto getById(Long id) {
         Optional<ProjectEntity> project = projectRepository.findById(id);
@@ -70,6 +85,31 @@ public class ProjectService {
 
         if (!employeeClient.exists(employeeId)) {
             throw new ResourceNotFoundException("Mitarbeiter mit ID " + employeeId + " nicht gefunden.");
+
+        return mapEntityToResponseDto(projectRepository.save(entity));
+    }
+
+    public ProjectEmployeesResponseDto getEmployeesFromProject(Long projectId) {
+        ProjectEntity project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Projekt mit ID " + projectId + " konnte nicht gefunden werden."));
+
+        String authHeader = request.getHeader("Authorization");
+        EmployeeDto employee = employeeClient.getEmployeeById(project.getVerantwortlicherMitarbeiterId(), authHeader);
+
+        List<EmployeeDto> employees = Arrays.asList(employee);
+
+        return new ProjectEmployeesResponseDto(project.getId(), project.getBezeichnung(), employees);
+    }
+
+    private void validateProjectData(ProjectCreateDto dto, ProjectEntity existingEntity) {
+        if (dto.getGeplantesEnddatum() != null && !dto.getStartdatum().isBefore(dto.getGeplantesEnddatum())) {
+            throw new UnprocessableEntityException("Das Startdatum muss vor dem geplanten Enddatum liegen.");
+        }
+        if (dto.getKundenId() == null || dto.getKundenId() <= 0) {
+            throw new UnprocessableEntityException("kundenId ist ungültig.");
+        }
+        if (dto.getStartdatum().isBefore(existingEntity.getStartdatum())) {
+            throw new UnprocessableEntityException("Das Startdatum kann nicht in die Vergangenheit verschoben werden.");
         }
 
         var qualifications = employeeClient.getQualifications(employeeId);
