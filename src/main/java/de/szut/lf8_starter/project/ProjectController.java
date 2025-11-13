@@ -1,5 +1,6 @@
 package de.szut.lf8_starter.project;
 
+import de.szut.lf8_starter.project.DTO.EmployeeAssignmentRequest;
 import de.szut.lf8_starter.project.DTO.ProjectCreateDto;
 import de.szut.lf8_starter.project.DTO.ProjectEmployeesResponseDto;
 import de.szut.lf8_starter.project.DTO.ProjectResponseDto;
@@ -37,17 +38,19 @@ public class ProjectController {
     public ProjectResponseDto getProjectById(@PathVariable long id){
         return service.getById(id);
     }
-
     @DeleteMapping("/{id}")
     public  ResponseEntity<Void> deleteProject(@PathVariable long id) {
         service.deleteById(id);
         return ResponseEntity.noContent().build();
     }
-
-    @PutMapping("/{id}")
-    public ProjectResponseDto updateProject(@Valid @RequestBody ProjectCreateDto dto , @PathVariable long id){
-        return service.update(id, dto);
+    @PostMapping("/{projectId}/employees")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void assignEmployee(@PathVariable Long projectId,
+                               @Valid @RequestBody EmployeeAssignmentRequest request) {
+        service.assignEmployeeToProject(projectId, request.getMaId(), request.getRoleId());
     }
+
+
 
     @GetMapping("/{id}/employees")
     public ProjectEmployeesResponseDto getEmployeeFromProject(@PathVariable long id){

@@ -16,7 +16,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 public class PostIT extends AbstractIntegrationTest {
 
-
     @Test
     void authorization() throws Exception {
         final String content = """
