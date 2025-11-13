@@ -33,7 +33,7 @@ class CreationIT {
     @Test
     void shouldReturn201() throws Exception {
         // Arrange
-        doNothing().when(employeeClient).assertExists(42L);
+        doNothing().when(employeeClient).exists(42L);
 
         String body = """
         {
